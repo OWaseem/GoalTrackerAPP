@@ -275,7 +275,7 @@ class GoalTrackerApp(tk.Tk):
             self.tree.delete(row)
 
         today = date.today()
-        for g in goals:
+        for i, g in enumerate(goals, start=1):
             due_str = g.due_date.strftime("%m-%d-%Y") if g.due_date else "—"
 
             if g.status == "done":
@@ -290,7 +290,7 @@ class GoalTrackerApp(tk.Tk):
                 tag = "pending"
 
             self.tree.insert("", "end", iid=str(g.id), values=(
-                g.id, g.title, g.category, due_str, g.status
+                i, g.title, g.category, due_str, g.status
             ), tags=(tag,))
 
         pending = sum(1 for g in all_goals if g.status == "pending")
