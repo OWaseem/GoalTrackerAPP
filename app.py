@@ -80,6 +80,18 @@ def subscribe():
     return "", 201
 
 
+# ── Test endpoint ─────────────────────────────────────────────────────────────
+
+@app.route("/api/test-notify", methods=["POST"])
+def test_notify():
+    subscriptions = get_all_subscriptions()
+    if not subscriptions:
+        return jsonify({"error": "No subscriptions found. Make sure you accepted notifications on your iPhone."}), 400
+    for sub in subscriptions:
+        _send_push(sub, "Goal Tracker Test", "Push notifications are working on your iPhone!")
+    return jsonify({"sent": len(subscriptions)})
+
+
 # ── Goals API ─────────────────────────────────────────────────────────────────
 
 @app.route("/api/goals", methods=["GET"])

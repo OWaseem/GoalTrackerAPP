@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGoals();
   });
 
+  document.getElementById('btn-test-notify').addEventListener('click', testNotify);
+
   document.getElementById('modal').addEventListener('click', e => {
     if (e.target === document.getElementById('modal')) closeModal();
   });
@@ -81,6 +83,21 @@ async function setupPushNotifications() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(subscription.toJSON()),
   });
+}
+
+async function testNotify() {
+  const banner = document.getElementById('notify-banner');
+  const msg    = document.getElementById('notify-msg');
+  const res    = await fetch('/api/test-notify', { method: 'POST' });
+  const data   = await res.json();
+  banner.classList.remove('hidden', 'error');
+  if (res.ok) {
+    msg.textContent = `Notification sent to ${data.sent} device(s) — check your iPhone!`;
+  } else {
+    banner.classList.add('error');
+    msg.textContent = data.error;
+  }
+  setTimeout(() => banner.classList.add('hidden'), 6000);
 }
 
 function _urlBase64ToUint8Array(base64) {
