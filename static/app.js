@@ -41,25 +41,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => _resubscribeIfNeeded())
-      .catch(() => {});
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
+  _resubscribeIfNeeded();
 });
 
 // ── Push notifications ────────────────────────────────────────────────────────
 
 async function _resubscribeIfNeeded() {
-  // Silently re-send an existing subscription to the server (e.g. after redeploy wipes DB)
+  // Re-send existing subscription to server on every page load.
+  // This automatically restores subscriptions after Render redeploys wipe the DB.
   if (!('PushManager' in window)) return;
-  const reg = await navigator.serviceWorker.ready;
-  const existing = await reg.pushManager.getSubscription();
-  if (!existing) return;
-  await fetch('/api/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(existing.toJSON()),
-  });
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (!existing) return;
+    localStorage.setItem('pushSub', JSON.stringify(existing.toJSON()));
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(existing.toJSON()),
+    });
+  } catch (_) {}
 }
 
 async function enableNotifications() {
