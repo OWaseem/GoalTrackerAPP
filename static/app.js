@@ -88,24 +88,30 @@ async function enableNotifications() {
     return;
   }
 
-  const reg = await navigator.serviceWorker.ready;
-  const res = await fetch('/api/vapid-public-key');
-  const { publicKey } = await res.json();
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const res = await fetch('/api/vapid-public-key');
+    const { publicKey } = await res.json();
 
-  const subscription = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: _urlBase64ToUint8Array(publicKey),
-  });
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(publicKey),
+    });
 
-  await fetch('/api/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(subscription.toJSON()),
-  });
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription.toJSON()),
+    });
 
-  banner.classList.remove('hidden', 'error');
-  msg.textContent = 'Notifications enabled! Tap "Test Notification" to verify.';
-  setTimeout(() => banner.classList.add('hidden'), 5000);
+    banner.classList.remove('hidden', 'error');
+    msg.textContent = 'Notifications enabled! Tap "Test Notification" to verify.';
+    setTimeout(() => banner.classList.add('hidden'), 5000);
+  } catch (err) {
+    banner.classList.remove('hidden');
+    banner.classList.add('error');
+    msg.textContent = 'Error: ' + err.message;
+  }
 }
 
 async function testNotify() {
