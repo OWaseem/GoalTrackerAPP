@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Goals">
+  <meta name="theme-color" content="#1e1e2e">
+  <title>Goal Tracker</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Goal Tracker</h1>
+      <button id="btn-add">+ Add</button>
+    </header>
+
+    <div id="filters">
+      <select id="filter-status">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="done">Done</option>
+      </select>
+      <select id="filter-cat">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+
+    <div id="stats"></div>
+    <div id="goals-list"></div>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="modal" class="hidden">
+    <div id="modal-content">
+      <h2 id="modal-title">New Goal</h2>
+
+      <label for="input-title">Title *</label>
+      <input type="text" id="input-title" placeholder="What do you want to achieve?">
+
+      <label for="input-desc">Description</label>
+      <input type="text" id="input-desc" placeholder="Optional details">
+
+      <label for="input-cat">Category</label>
+      <input type="text" id="input-cat" placeholder="e.g. health, career…">
+
+      <label for="input-due">Due Date</label>
+      <input type="date" id="input-due">
+
+      <div class="modal-buttons">
+        <button id="btn-cancel">Cancel</button>
+        <button id="btn-save">Add Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
