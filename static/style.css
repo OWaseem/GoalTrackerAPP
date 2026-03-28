@@ -213,9 +213,10 @@ header h1 { font-size: 22px; font-weight: 700; }
 #debug-bar {
   display: flex;
   justify-content: center;
+  gap: 10px;
   padding: 20px 16px 0;
 }
-#btn-test-notify {
+#debug-bar button {
   background: none;
   border: 1px solid var(--subtext);
   color: var(--subtext);
@@ -224,7 +225,8 @@ header h1 { font-size: 22px; font-weight: 700; }
   font-size: 13px;
   cursor: pointer;
 }
-#btn-test-notify:active { border-color: var(--accent); color: var(--accent); }
+#debug-bar button:active { border-color: var(--accent); color: var(--accent); }
+#btn-enable-notify { border-color: var(--accent); color: var(--accent); }
 
 /* ── Modal ── */
 #modal {

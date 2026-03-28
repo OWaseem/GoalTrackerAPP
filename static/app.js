@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGoals();
   });
 
+  document.getElementById('btn-enable-notify').addEventListener('click', enableNotifications);
   document.getElementById('btn-test-notify').addEventListener('click', testNotify);
 
   document.getElementById('modal').addEventListener('click', e => {
@@ -41,37 +42,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
-      .then(() => setupPushNotifications())
+      .then(() => _resubscribeIfNeeded())
       .catch(() => {});
   }
 });
 
 // ── Push notifications ────────────────────────────────────────────────────────
 
-async function setupPushNotifications() {
-  if (!('Notification' in window) || !('PushManager' in window)) return;
-  if (Notification.permission === 'denied') return;
-
+async function _resubscribeIfNeeded() {
+  // Silently re-send an existing subscription to the server (e.g. after redeploy wipes DB)
+  if (!('PushManager' in window)) return;
   const reg = await navigator.serviceWorker.ready;
-
-  // Already subscribed — re-send subscription to server in case it was lost
   const existing = await reg.pushManager.getSubscription();
-  if (existing) {
-    await fetch('/api/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(existing.toJSON()),
-    });
+  if (!existing) return;
+  await fetch('/api/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(existing.toJSON()),
+  });
+}
+
+async function enableNotifications() {
+  const banner = document.getElementById('notify-banner');
+  const msg    = document.getElementById('notify-msg');
+
+  if (!('Notification' in window) || !('PushManager' in window)) {
+    banner.classList.remove('hidden');
+    banner.classList.add('error');
+    msg.textContent = 'Push notifications are not supported on this browser.';
     return;
   }
 
-  // Ask permission (browser will show its own prompt)
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return;
+  if (Notification.permission === 'denied') {
+    banner.classList.remove('hidden');
+    banner.classList.add('error');
+    msg.textContent = 'Notifications are blocked. Enable them in iPhone Settings → Notifications → Goal Tracker.';
+    return;
+  }
 
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    banner.classList.remove('hidden');
+    banner.classList.add('error');
+    msg.textContent = 'Permission not granted.';
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.ready;
   const res = await fetch('/api/vapid-public-key');
   const { publicKey } = await res.json();
-  if (!publicKey) return;
 
   const subscription = await reg.pushManager.subscribe({
     userVisibleOnly: true,
@@ -83,6 +102,10 @@ async function setupPushNotifications() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(subscription.toJSON()),
   });
+
+  banner.classList.remove('hidden', 'error');
+  msg.textContent = 'Notifications enabled! Tap "Test Notification" to verify.';
+  setTimeout(() => banner.classList.add('hidden'), 5000);
 }
 
 async function testNotify() {
