@@ -1,3 +1,5 @@
+import json
+import os
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -5,7 +7,8 @@ from typing import Optional
 
 from models import Goal
 
-DB_PATH = Path(__file__).parent / "goals.db"
+_data_dir = Path(os.environ.get("DATA_DIR", str(Path(__file__).parent)))
+DB_PATH = _data_dir / "goals.db"
 
 
 def get_connection():
@@ -23,6 +26,13 @@ def init_db():
                 due_date    TEXT,
                 status      TEXT DEFAULT 'pending',
                 created_at  TEXT DEFAULT (date('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                endpoint   TEXT PRIMARY KEY,
+                keys       TEXT NOT NULL,
+                created_at TEXT DEFAULT (date('now'))
             )
         """)
 
@@ -113,6 +123,25 @@ def get_due_today() -> list[Goal]:
             "SELECT * FROM goals WHERE status = 'pending' AND due_date = ?", (today,)
         ).fetchall()
     return [_row_to_goal(r) for r in rows]
+
+
+def save_subscription(sub: dict) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO push_subscriptions (endpoint, keys) VALUES (?, ?)",
+            (sub["endpoint"], json.dumps(sub["keys"])),
+        )
+
+
+def get_all_subscriptions() -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute("SELECT endpoint, keys FROM push_subscriptions").fetchall()
+    return [{"endpoint": r[0], "keys": json.loads(r[1])} for r in rows]
+
+
+def delete_subscription(endpoint: str) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
 
 
 def get_overdue() -> list[Goal]:

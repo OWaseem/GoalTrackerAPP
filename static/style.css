@@ -1,0 +1,270 @@
+:root {
+  --bg:           #1e1e2e;
+  --surface:      #2a2a3d;
+  --accent:       #7c6af7;
+  --accent-dark:  #5a4fd6;
+  --text:         #cdd6f4;
+  --subtext:      #a6adc8;
+  --red:          #f38ba8;
+  --yellow:       #f9e2af;
+  --green:        #a6e3a1;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  font-size: 15px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 14px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+header h1 { font-size: 22px; font-weight: 700; }
+
+#btn-add {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#btn-add:active { background: var(--accent-dark); }
+
+/* ── Filters ── */
+#filters {
+  display: flex;
+  gap: 10px;
+  padding: 0 16px 12px;
+}
+
+#filters select {
+  flex: 1;
+  background: var(--surface);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 28px 9px 12px;
+  font-size: 14px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23a6adc8' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+/* ── Stats ── */
+#stats {
+  text-align: center;
+  font-size: 13px;
+  color: var(--subtext);
+  padding: 2px 16px 14px;
+}
+
+/* ── Goal list ── */
+#goals-list {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--subtext);
+  padding: 48px 0;
+  font-size: 15px;
+}
+
+/* ── Goal card ── */
+.goal-card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--subtext);
+}
+.goal-card.overdue { border-left-color: var(--red); }
+.goal-card.today   { border-left-color: var(--yellow); }
+.goal-card.done    { border-left-color: var(--green); opacity: 0.65; }
+
+.goal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.goal-num {
+  font-size: 12px;
+  color: var(--subtext);
+  min-width: 18px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.goal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.goal-title {
+  font-weight: 600;
+  font-size: 15px;
+  word-break: break-word;
+}
+.done .goal-title {
+  text-decoration: line-through;
+  color: var(--subtext);
+}
+
+.goal-desc {
+  font-size: 13px;
+  color: var(--subtext);
+  word-break: break-word;
+}
+
+.cat-badge {
+  font-size: 11px;
+  background: var(--bg);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.goal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.due-label {
+  font-size: 12px;
+  color: var(--subtext);
+}
+.overdue .due-label { color: var(--red); }
+.today   .due-label { color: var(--yellow); }
+
+.goal-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.goal-actions button {
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 11px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-done    { background: var(--green);  color: var(--bg); }
+.btn-pending { background: var(--yellow); color: var(--bg); }
+.btn-edit    { background: var(--accent); color: white; }
+.btn-delete  { background: var(--red);    color: var(--bg); }
+
+/* ── Modal ── */
+#modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+#modal.hidden { display: none; }
+
+#modal-content {
+  background: var(--surface);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border-radius: 20px 20px 0 0;
+  padding: 28px 24px;
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+#modal-content h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#modal-content label {
+  font-size: 13px;
+  color: var(--subtext);
+  margin-bottom: -4px;
+}
+
+#modal-content input {
+  background: var(--bg);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 15px;
+  width: 100%;
+}
+#modal-content input:focus {
+  outline: 2px solid var(--accent);
+}
+#modal-content input[type="date"] {
+  color-scheme: dark;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.modal-buttons button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#btn-cancel { background: var(--bg);    color: var(--subtext); }
+#btn-save   { background: var(--accent); color: white; }
+#btn-save:active { background: var(--accent-dark); }
