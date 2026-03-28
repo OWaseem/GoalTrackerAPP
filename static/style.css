@@ -196,6 +196,36 @@ header h1 { font-size: 22px; font-weight: 700; }
 .btn-edit    { background: var(--accent); color: white; }
 .btn-delete  { background: var(--red);    color: var(--bg); }
 
+/* ── Notify banner ── */
+#notify-banner {
+  margin: 0 16px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--green);
+  text-align: center;
+}
+#notify-banner.error { color: var(--red); }
+#notify-banner.hidden { display: none; }
+
+/* ── Debug bar ── */
+#debug-bar {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 0;
+}
+#btn-test-notify {
+  background: none;
+  border: 1px solid var(--subtext);
+  color: var(--subtext);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+#btn-test-notify:active { border-color: var(--accent); color: var(--accent); }
+
 /* ── Modal ── */
 #modal {
   position: fixed;
