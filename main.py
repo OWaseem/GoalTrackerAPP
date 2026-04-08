@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from db import init_db, add_goal, update_goal, list_goals, mark_done, mark_pending, delete_goal, get_goal
 
 
-# ── Colours & fonts ──────────────────────────────────────────────────────────
+# ── Colours & fonts ───────────────────────────────────────────────────────────
 BG          = "#1e1e2e"
 SURFACE     = "#2a2a3d"
 ACCENT      = "#7c6af7"
@@ -22,6 +22,7 @@ FONT        = ("SF Pro Display", 13)
 FONT_BOLD   = ("SF Pro Display", 13, "bold")
 FONT_TITLE  = ("SF Pro Display", 20, "bold")
 FONT_SMALL  = ("SF Pro Display", 11)
+FONT_TINY   = ("SF Pro Display", 10)
 
 
 # ── Goal Dialog (Add & Edit) ──────────────────────────────────────────────────
@@ -39,7 +40,6 @@ class GoalDialog(tk.Toplevel):
         self.grab_set()
         self.transient(parent)
 
-        # Centre over parent
         self.update_idletasks()
         px, py = parent.winfo_x(), parent.winfo_y()
         pw, ph = parent.winfo_width(), parent.winfo_height()
@@ -65,16 +65,14 @@ class GoalDialog(tk.Toplevel):
 
         heading = "Edit Goal" if self._editing else "New Goal"
         tk.Label(frame, text=heading, bg=BG, fg=TEXT, font=FONT_TITLE).grid(
-            row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
+            row=0, column=0, sticky="w", pady=(0, 12)
         )
 
-        # Pre-fill values when editing
         g = self._goal
         self.title_var, title_entry = self._field(frame, "Title *", 1, g.title if g else "")
         self.desc_var,  _           = self._field(frame, "Description", 3, g.description if g else "")
         self.cat_var,   _           = self._field(frame, "Category", 5, g.category if g else "general")
 
-        # Due date: pre-fill existing or default to today, formatted MM-DD-YYYY
         if g and g.due_date:
             default_due = g.due_date.strftime("%m-%d-%Y")
         else:
@@ -133,21 +131,22 @@ class GoalTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Goal Tracker")
-        self.geometry("820x540")
-        self.minsize(700, 440)
+        self.geometry("860x620")
+        self.minsize(700, 480)
         self.configure(bg=BG)
 
         init_db()
         self._build()
         self._refresh()
 
-    # ── Layout ────────────────────────────────────────────────────────────────
     def _build(self):
         # Header
-        header = tk.Frame(self, bg=BG, padx=24, pady=18)
+        header = tk.Frame(self, bg=BG, padx=24, pady=16)
         header.pack(fill="x")
 
         tk.Label(header, text="Goal Tracker", bg=BG, fg=TEXT, font=FONT_TITLE).pack(side="left")
+        self.stats_label = tk.Label(header, text="", bg=BG, fg=SUBTEXT, font=FONT_SMALL)
+        self.stats_label.pack(side="left", padx=20)
 
         tk.Button(
             header, text="+ Add Goal", command=self._open_add_dialog,
@@ -179,132 +178,144 @@ class GoalTrackerApp(tk.Tk):
         self.cat_menu.pack(side="left", padx=(4, 0))
         self.cat_menu.bind("<<ComboboxSelected>>", lambda _: self._refresh())
 
-        # Table
-        # Action buttons — packed before table so expand=True doesn't hide them
-        btn_bar = tk.Frame(self, bg=BG, padx=24, pady=12)
-        btn_bar.pack(fill="x", side="bottom")
+        # Scrollable card area
+        container = tk.Frame(self, bg=BG)
+        container.pack(fill="both", expand=True)
 
-        tk.Button(
-            btn_bar, text="Mark Done", command=self._mark_done,
-            bg=GREEN, fg=BG, font=FONT_BOLD, relief="flat",
-            padx=14, pady=7, cursor="hand2",
-            activebackground="#7ecf7a", activeforeground=BG,
-        ).pack(side="left", padx=(0, 10))
+        self.canvas = tk.Canvas(container, bg=BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=scrollbar.set)
 
-        tk.Button(
-            btn_bar, text="Mark Pending", command=self._mark_pending,
-            bg=YELLOW, fg=BG, font=FONT_BOLD, relief="flat",
-            padx=14, pady=7, cursor="hand2",
-            activebackground="#e8cc80", activeforeground=BG,
-        ).pack(side="left", padx=(0, 10))
-
-        tk.Button(
-            btn_bar, text="Edit", command=self._edit,
-            bg=ACCENT, fg="white", font=FONT_BOLD, relief="flat",
-            padx=14, pady=7, cursor="hand2",
-            activebackground=ACCENT_DARK, activeforeground="white",
-        ).pack(side="left", padx=(0, 10))
-
-        tk.Button(
-            btn_bar, text="Remove Goal", command=self._delete,
-            bg=RED, fg=BG, font=FONT_BOLD, relief="flat",
-            padx=14, pady=7, cursor="hand2",
-            activebackground="#e06080", activeforeground=BG,
-        ).pack(side="left")
-
-        self.status_label = tk.Label(btn_bar, text="", bg=BG, fg=SUBTEXT, font=FONT_SMALL)
-        self.status_label.pack(side="right")
-
-        table_frame = tk.Frame(self, bg=BG, padx=24, pady=12)
-        table_frame.pack(fill="both", expand=True)
-
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Treeview",
-            background=SURFACE, fieldbackground=SURFACE,
-            foreground=TEXT, font=FONT, rowheight=36,
-        )
-        style.configure("Treeview.Heading",
-            background=BG, foreground=SUBTEXT,
-            font=FONT_SMALL, relief="flat",
-        )
-        style.map("Treeview", background=[("selected", ACCENT)])
-
-        cols = ("ID", "Title", "Category", "Due Date", "Status")
-        self.tree = ttk.Treeview(table_frame, columns=cols, show="headings", selectmode="browse")
-
-        self.tree.heading("ID",       text="ID")
-        self.tree.heading("Title",    text="Title")
-        self.tree.heading("Category", text="Category")
-        self.tree.heading("Due Date", text="Due Date")
-        self.tree.heading("Status",   text="Status")
-
-        self.tree.column("ID",       width=44,  anchor="center")
-        self.tree.column("Title",    width=280, anchor="w")
-        self.tree.column("Category", width=110, anchor="center")
-        self.tree.column("Due Date", width=160, anchor="center")
-        self.tree.column("Status",   width=90,  anchor="center")
-
-        # Row colour tags
-        self.tree.tag_configure("overdue",  foreground=RED)
-        self.tree.tag_configure("today",    foreground=YELLOW)
-        self.tree.tag_configure("done",     foreground=GREEN)
-        self.tree.tag_configure("pending",  foreground=TEXT)
-
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-
-        self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
 
+        self.cards_frame = tk.Frame(self.canvas, bg=BG)
+        self._canvas_win = self.canvas.create_window((0, 0), window=self.cards_frame, anchor="nw")
+
+        self.cards_frame.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox("all")
+        ))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(
+            self._canvas_win, width=e.width
+        ))
+        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(
+            int(-1 * (e.delta / 120)), "units"
+        ))
 
     # ── Data ──────────────────────────────────────────────────────────────────
     def _refresh(self):
         status   = self.status_var.get() if self.status_var.get() != "All" else None
         category = self.cat_var.get()    if self.cat_var.get()    != "All" else None
 
-        goals = list_goals(status=status, category=category)
-
-        # Update category dropdown with current unique categories
+        goals     = list_goals(status=status, category=category)
         all_goals = list_goals()
+
         cats = sorted({g.category for g in all_goals})
         self.cat_menu["values"] = ["All"] + cats
 
-        # Clear and repopulate table
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-
-        today = date.today()
-        for i, g in enumerate(goals, start=1):
-            due_str = g.due_date.strftime("%m-%d-%Y") if g.due_date else "—"
-
-            if g.status == "done":
-                tag = "done"
-            elif g.due_date and g.due_date < today:
-                due_str += "  (overdue)"
-                tag = "overdue"
-            elif g.due_date and g.due_date == today:
-                due_str += "  (today)"
-                tag = "today"
-            else:
-                tag = "pending"
-
-            self.tree.insert("", "end", iid=str(g.id), values=(
-                i, g.title, g.category, due_str, g.status
-            ), tags=(tag,))
-
         pending = sum(1 for g in all_goals if g.status == "pending")
         done    = sum(1 for g in all_goals if g.status == "done")
-        self.status_label.config(text=f"{pending} pending  ·  {done} done")
+        self.stats_label.config(text=f"{pending} pending  ·  {done} done")
+
+        for w in self.cards_frame.winfo_children():
+            w.destroy()
+
+        if not goals:
+            tk.Label(
+                self.cards_frame,
+                text="No goals yet — click + Add Goal to get started.",
+                bg=BG, fg=SUBTEXT, font=FONT,
+            ).pack(pady=40)
+            return
+
+        today = date.today()
+        for i, g in enumerate(goals):
+            self._build_card(g, i + 1, today)
+
+    # ── Card ──────────────────────────────────────────────────────────────────
+    def _build_card(self, g, num, today):
+        if g.status == "done":
+            due_color   = GREEN
+            due_text    = g.due_date.strftime("%m-%d-%Y") if g.due_date else ""
+            toggle_text = "Pending"
+            toggle_bg   = YELLOW
+            toggle_fg   = BG
+            toggle_cmd  = lambda gid=g.id: self._mark_pending(gid)
+        elif g.due_date and g.due_date < today:
+            due_color   = RED
+            due_text    = g.due_date.strftime("%m-%d-%Y") + "  ·  overdue"
+            toggle_text = "Done"
+            toggle_bg   = GREEN
+            toggle_fg   = BG
+            toggle_cmd  = lambda gid=g.id: self._mark_done(gid)
+        elif g.due_date and g.due_date == today:
+            due_color   = YELLOW
+            due_text    = "Due today"
+            toggle_text = "Done"
+            toggle_bg   = GREEN
+            toggle_fg   = BG
+            toggle_cmd  = lambda gid=g.id: self._mark_done(gid)
+        else:
+            due_color   = SUBTEXT
+            due_text    = g.due_date.strftime("%m-%d-%Y") if g.due_date else ""
+            toggle_text = "Done"
+            toggle_bg   = GREEN
+            toggle_fg   = BG
+            toggle_cmd  = lambda gid=g.id: self._mark_done(gid)
+
+        card = tk.Frame(self.cards_frame, bg=SURFACE, padx=20, pady=14)
+        card.pack(fill="x", padx=20, pady=(8, 0))
+
+        # Top row: number + title/description + category badge
+        top = tk.Frame(card, bg=SURFACE)
+        top.pack(fill="x")
+
+        tk.Label(top, text=str(num), bg=SURFACE, fg=SUBTEXT,
+                 font=FONT_SMALL, width=2).pack(side="left", padx=(0, 10), anchor="n")
+
+        body = tk.Frame(top, bg=SURFACE)
+        body.pack(side="left", fill="x", expand=True)
+
+        tk.Label(body, text=g.title, bg=SURFACE, fg=TEXT,
+                 font=FONT_BOLD, anchor="w").pack(fill="x")
+        if g.description:
+            tk.Label(body, text=g.description, bg=SURFACE, fg=SUBTEXT,
+                     font=FONT_SMALL, anchor="w", wraplength=520, justify="left").pack(fill="x", pady=(2, 0))
+
+        tk.Label(top, text=g.category, bg=ACCENT, fg="white",
+                 font=FONT_TINY, padx=8, pady=3).pack(side="right", anchor="n")
+
+        # Bottom row: due date + action buttons
+        bottom = tk.Frame(card, bg=SURFACE)
+        bottom.pack(fill="x", pady=(10, 0))
+
+        if due_text:
+            tk.Label(bottom, text=due_text, bg=SURFACE, fg=due_color,
+                     font=FONT_SMALL).pack(side="left")
+
+        btn_frame = tk.Frame(bottom, bg=SURFACE)
+        btn_frame.pack(side="right")
+
+        tk.Button(
+            btn_frame, text=toggle_text, command=toggle_cmd,
+            bg=toggle_bg, fg=toggle_fg, font=FONT_SMALL, relief="flat",
+            padx=10, pady=4, cursor="hand2",
+        ).pack(side="left", padx=(0, 6))
+
+        tk.Button(
+            btn_frame, text="Edit", command=lambda gid=g.id: self._edit(gid),
+            bg=ACCENT, fg="white", font=FONT_SMALL, relief="flat",
+            padx=10, pady=4, cursor="hand2",
+            activebackground=ACCENT_DARK, activeforeground="white",
+        ).pack(side="left", padx=(0, 6))
+
+        tk.Button(
+            btn_frame, text="Remove", command=lambda gid=g.id: self._delete(gid),
+            bg=RED, fg=BG, font=FONT_SMALL, relief="flat",
+            padx=10, pady=4, cursor="hand2",
+        ).pack(side="left")
 
     # ── Actions ───────────────────────────────────────────────────────────────
-    def _selected_id(self):
-        sel = self.tree.selection()
-        if not sel:
-            messagebox.showinfo("No Selection", "Please select a goal first.")
-            return None
-        return int(sel[0])
-
     def _open_add_dialog(self):
         dlg = GoalDialog(self)
         self.wait_window(dlg)
@@ -312,12 +323,9 @@ class GoalTrackerApp(tk.Tk):
             add_goal(**dlg.result)
             self._refresh()
 
-    def _edit(self):
-        goal_id = self._selected_id()
-        if goal_id is None:
-            return
+    def _edit(self, goal_id):
         goal = get_goal(goal_id)
-        if goal is None:
+        if not goal:
             return
         dlg = GoalDialog(self, goal=goal)
         self.wait_window(dlg)
@@ -325,32 +333,15 @@ class GoalTrackerApp(tk.Tk):
             update_goal(goal_id, **dlg.result)
             self._refresh()
 
-    def _mark_done(self):
-        goal_id = self._selected_id()
-        if goal_id is None:
-            return
-        goal = get_goal(goal_id)
-        if goal and goal.status == "done":
-            messagebox.showinfo("Already Done", f'"{goal.title}" is already marked as done.')
-            return
+    def _mark_done(self, goal_id):
         mark_done(goal_id)
         self._refresh()
 
-    def _mark_pending(self):
-        goal_id = self._selected_id()
-        if goal_id is None:
-            return
-        goal = get_goal(goal_id)
-        if goal and goal.status == "pending":
-            messagebox.showinfo("Already Pending", f'"{goal.title}" is already pending.')
-            return
+    def _mark_pending(self, goal_id):
         mark_pending(goal_id)
         self._refresh()
 
-    def _delete(self):
-        goal_id = self._selected_id()
-        if goal_id is None:
-            return
+    def _delete(self, goal_id):
         goal = get_goal(goal_id)
         if goal and messagebox.askyesno("Remove Goal", f'Remove "{goal.title}"?'):
             delete_goal(goal_id)
